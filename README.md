@@ -10,12 +10,12 @@ A simple working solution of pull down to refresh `WebView` page with `RefreshIn
 This version resolves following issues w/o `SingleChildScrollView`:
 - `SingleChildScrollView` has always the absolute height of the page 
   e.g. if a text box was not expanded from the beginning (javascript), 
-  the scroll height *exceeds* the page height.
+  the scroll height **exceeds** the page height.
 - The WebView gets the whole scroll area height, but doesn't know the display size, 
-  so if a bottom or top modal sheet appears, they are *not* *rendered* *correctly* in the view area 
+  so if a bottom or top modal sheet appears, they are **not** **rendered** **correctly** in the view area 
   of the screen but in the absolute complete height of the scroll area, so then you have to scroll 
   e.g. 6000px up and down.
-- The *scroll* *position* *stays* where you left somewhere in your previous absolute page height, 
+- The **scroll** **position** **stays** where you left somewhere in your previous absolute page height, 
   if you browse further w/o a page refresh.
 
 <img src="support/example.gif"  />
@@ -27,7 +27,7 @@ This version resolves following issues w/o `SingleChildScrollView`:
 - `EXCEEDS_LOADING_TIME`: Checks if loading time exceeds a maximum time (e.g. 3 seconds) 
   to re-allow drag to refresh if page is still loading (Check [pull_to_refresh.dart](./lib/pull_to_refresh.dart)).  
 
-## Differences to the original with `SingleChildScrollView` or chrome browser
+## Differences w/o `SingleChildScrollView` or chrome browser
 
 - The `RefreshIndicator` shows no initial animation by dragging it down until the distance 
   is reached to start the refresh process.
