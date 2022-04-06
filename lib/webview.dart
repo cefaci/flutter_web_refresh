@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter_web_refresh/pull_to_refresh.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -22,16 +21,13 @@ class MyWebViewWidget extends StatefulWidget {
 class _MyWebViewWidgetState extends State<MyWebViewWidget>
     with WidgetsBindingObserver {
   late WebViewController _controller;
-
-  // Drag to refresh helpers
-  final DragGesturePullToRefresh pullToRefresh = DragGesturePullToRefresh();
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-      GlobalKey<RefreshIndicatorState>();
+  late DragGesturePullToRefresh dragGesturePullToRefresh;
 
   @override
   void initState() {
     super.initState();
 
+    dragGesturePullToRefresh = DragGesturePullToRefresh();
     WidgetsBinding.instance!.addObserver(this);
     if (Platform.isAndroid) WebView.platform = SurfaceAndroidWebView();
   }
@@ -46,54 +42,41 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
   @override
   void didChangeMetrics() {
     // on portrait / landscape or other change, recalculate height
-    pullToRefresh.setHeight(MediaQuery.of(context).size.height);
+    dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height);
   }
 
   @override
   Widget build(context) {
-    return NotificationListener(
-      onNotification: (scrollNotification) {
-        debugPrint(
-            'MyWebViewWidget:NotificationListener(): $scrollNotification');
-        return true;
-      },
-      child: RefreshIndicator(
-        key: _refreshIndicatorKey,
-        onRefresh: () {
-          Completer<void> completer = pullToRefresh.refresh();
-          _controller.reload();
-          return completer.future;
-        },
+    return
+        // NotificationListener(
+        // onNotification: (scrollNotification) {
+        //  debugPrint('MyWebViewWidget:NotificationListener(): $scrollNotification');
+        //  return true;
+        // }, child:
+      RefreshIndicator(
+        onRefresh: () => dragGesturePullToRefresh.refresh(),
         child: Builder(
-          builder: (BuildContext context) {
-            return WebView(
-              initialUrl: widget.initialUrl,
-              javascriptMode: JavascriptMode.unrestricted,
-              zoomEnabled: true,
-              gestureNavigationEnabled: true,
-              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                pullToRefresh.dragGestureRecognizer(_refreshIndicatorKey),
-              },
-              onWebViewCreated: (WebViewController webViewController) {
-                _controller = webViewController;
-                pullToRefresh.setContext(context);
-                pullToRefresh.setController(_controller);
-              },
-              onPageStarted: (String url) {
-                pullToRefresh.started();
-              },
-              onPageFinished: (finish) {
-                pullToRefresh.finished();
-              },
-              onWebResourceError: (error) {
-                debugPrint(
-                    'MyWebViewWidget:onWebResourceError(): ${error.description}');
-                pullToRefresh.finished();
-              },
-            );
-          },
+          builder: (context) => WebView(
+            initialUrl: widget.initialUrl,
+            javascriptMode: JavascriptMode.unrestricted,
+            zoomEnabled: true,
+            gestureNavigationEnabled: true,
+            gestureRecognizers: {Factory(() => dragGesturePullToRefresh)},
+            onWebViewCreated: (WebViewController webViewController) {
+              _controller = webViewController;
+              dragGesturePullToRefresh
+                  .setContext(context)
+                  .setController(_controller);
+            },
+            onPageStarted: (String url) { dragGesturePullToRefresh.started(); },
+            onPageFinished: (finish) {    dragGesturePullToRefresh.finished();},
+            onWebResourceError: (error) {
+              debugPrint(
+                  'MyWebViewWidget:onWebResourceError(): ${error.description}');
+              dragGesturePullToRefresh.finished();
+            },
+          ),
         ),
-      ),
-    );
+      );
   }
 }
