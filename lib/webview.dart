@@ -19,6 +19,7 @@ class MyWebViewWidget extends StatefulWidget {
 
 class _MyWebViewWidgetState extends State<MyWebViewWidget>
     with WidgetsBindingObserver {
+
   late WebViewController _controller;
   late DragGesturePullToRefresh dragGesturePullToRefresh;
 
