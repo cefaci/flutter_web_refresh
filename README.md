@@ -18,7 +18,7 @@ This version **resolves** following **issues** w/o `SingleChildScrollView`:
 - The **scroll** **position** **stays** where you left somewhere in your previous absolute page height, 
   if you browse further w/o a page refresh.
 
-<img src="support/example.gif"  />
+<img src="support/example3.gif"  />
 
 ## Constants 
 
