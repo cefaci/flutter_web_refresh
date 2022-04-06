@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -14,10 +15,10 @@ class AllowVerticalDragGestureRecognizer extends VerticalDragGestureRecognizer {
   }
 }
 
-class DragGesturePullToRefresh {
+class DragGesturePullToRefresh extends StatelessWidget{
   static const double EXCEEDS_LOADING_TIME = 3000;
-  static const double REFRESH_DISTANCE_MIN = .2;
 
+  late BuildContext _context;
   late WebViewController _controller;
 
   // loading
@@ -26,40 +27,87 @@ class DragGesturePullToRefresh {
   bool isLoading = true;
 
   // drag
+  double height = 200;
   bool dragStarted = false;
   double dragDistance = 0;
-  double refreshDistance = 200;
 
   Factory<OneSequenceGestureRecognizer> dragGestureRecognizer(final GlobalKey<RefreshIndicatorState> refreshIndicatorKey) {
-    return Factory<OneSequenceGestureRecognizer>(() => AllowVerticalDragGestureRecognizer()
+    return Factory<OneSequenceGestureRecognizer>(() => VerticalDragGestureRecognizer()
     // Got the original idea from https://stackoverflow.com/users/15862916/shalin-shah:
     // https://stackoverflow.com/questions/57656045/pull-down-to-refresh-webview-page-in-flutter
-      ..onDown = (DragDownDetails dragDownDetails) {
-        // if the page is still loading don't allow refreshing again
+      ..onStart = (DragStartDetails dragDetails) {
         if (!isLoading ||
             (msLoading > 0 && (DateTime.now().millisecondsSinceEpoch - msLoading) > EXCEEDS_LOADING_TIME)) {
           _controller.getScrollY().then((scrollYPos) {
             if (scrollYPos == 0) {
               dragStarted = true;
               dragDistance = 0;
+              ScrollStartNotification(
+                  metrics: FixedScrollMetrics(
+                    minScrollExtent: 0,
+                    maxScrollExtent: height,
+                    pixels: 0,
+                    viewportDimension: height,
+                    axisDirection: AxisDirection.down),
+                  dragDetails: dragDetails,
+                  context: _context).dispatch(_context);
             }
           });
         }
       }
-      ..onUpdate = (DragUpdateDetails dragUpdateDetails) {
-        calculateDrag(refreshIndicatorKey, dragUpdateDetails.delta.dy);
+      ..onUpdate = (DragUpdateDetails dragDetails) {
+        if (dragStarted) {
+          double dy = dragDetails.delta.dy;
+          dragDistance += dy;
+          ScrollUpdateNotification(
+              metrics: FixedScrollMetrics(
+                  minScrollExtent : dy > 0 ? 0 : dragDistance,
+                  maxScrollExtent : height,
+                  pixels : dy > 0 ? (-1) * dy : dragDistance,
+                  viewportDimension : height,
+                  axisDirection : dragDistance < 0 ? AxisDirection.up : AxisDirection.down),
+              context: _context,
+              scrollDelta: (-1) * dy).dispatch(_context);
+          if(dragDistance < 0){
+            clearDrag();
+          }
+        }
       }
-      ..onEnd = (DragEndDetails dragEndDetails) { clearDrag(); }
-      ..onCancel = () { clearDrag(); });
+      ..onEnd = (DragEndDetails dragDetails) {
+        ScrollEndNotification(
+            metrics: FixedScrollMetrics(
+                minScrollExtent : 0,
+                maxScrollExtent : height,
+                pixels : dragDistance,
+                viewportDimension : height,
+                axisDirection : AxisDirection.down),
+            context: _context
+          ).dispatch(_context);
+        clearDrag();
+      }
+      ..onCancel = () {
+        ScrollUpdateNotification(
+            metrics: FixedScrollMetrics(
+                minScrollExtent : 0,
+                maxScrollExtent : height,
+                pixels : 1,
+                viewportDimension : height,
+                axisDirection : AxisDirection.up),
+            context: _context,
+            scrollDelta: 0).dispatch(_context);
+        clearDrag();
+      });
   }
 
+  void setContext(BuildContext context){ _context = context; }
   void setController(WebViewController controller){ _controller = controller; }
-  void setRefreshDistance(double height){ refreshDistance = height * REFRESH_DISTANCE_MIN; }
+  void setHeight(double height){ this.height = height;  }
 
   Completer<void> refresh() {
     if (!completer.isCompleted) {
       completer.complete();
     }
+
     completer = Completer<void>();
     started();
     return completer;
@@ -84,24 +132,9 @@ class DragGesturePullToRefresh {
     dragDistance = 0;
   }
 
-  void calculateDrag(final GlobalKey<RefreshIndicatorState> refreshIndicatorKey, double dy) async {
-    if (dragStarted && dy >= 0) {
-      dragDistance += dy;
-      // Show the RefreshIndicator
-      if (dragDistance > refreshDistance) {
-        debugPrint(
-            'DragGesturePullToRefresh:refreshPage(): $dragDistance > $refreshDistance');
-        clearDrag();
-        unawaited(refreshIndicatorKey.currentState?.show());
-      }
-    /*
-      The web page scrolling is not blocked, when you start to drag down from the top position of
-      the page to start the refresh process, e.g. like in the chrome browser. So the refresh process
-      is stopped if start to drag down from the page top position and then up before reaching
-      the distance to start the refresh process.
-    */
-    } else {
-      clearDrag();
-    }
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    throw UnimplementedError();
   }
 }

@@ -19,13 +19,14 @@ class MyWebViewWidget extends StatefulWidget {
   State<MyWebViewWidget> createState() => _MyWebViewWidgetState();
 }
 
-class _MyWebViewWidgetState extends State<MyWebViewWidget> with WidgetsBindingObserver {
-
+class _MyWebViewWidgetState extends State<MyWebViewWidget>
+    with WidgetsBindingObserver {
   late WebViewController _controller;
 
   // Drag to refresh helpers
   final DragGesturePullToRefresh pullToRefresh = DragGesturePullToRefresh();
-  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void initState() {
@@ -45,37 +46,53 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget> with WidgetsBindingOb
   @override
   void didChangeMetrics() {
     // on portrait / landscape or other change, recalculate height
-    pullToRefresh.setRefreshDistance(MediaQuery.of(context).size.height);
+    pullToRefresh.setHeight(MediaQuery.of(context).size.height);
   }
 
   @override
   Widget build(context) {
-    return RefreshIndicator(
-      key: _refreshIndicatorKey,
-      onRefresh: () {
-        Completer<void> completer = pullToRefresh.refresh();
-        _controller.reload();
-        return completer.future;
+    return NotificationListener(
+      onNotification: (scrollNotification) {
+        debugPrint(
+            'MyWebViewWidget:NotificationListener(): $scrollNotification');
+        return true;
       },
-      child: WebView(
-        initialUrl: widget.initialUrl,
-        javascriptMode: JavascriptMode.unrestricted,
-        zoomEnabled: true,
-        gestureNavigationEnabled: true,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          pullToRefresh.dragGestureRecognizer(_refreshIndicatorKey),
+      child: RefreshIndicator(
+        key: _refreshIndicatorKey,
+        onRefresh: () {
+          Completer<void> completer = pullToRefresh.refresh();
+          _controller.reload();
+          return completer.future;
         },
-        onWebViewCreated: (WebViewController webViewController) {
-          _controller = webViewController;
-          pullToRefresh.setController(_controller);
-        },
-        onPageStarted: (String url) { pullToRefresh.started(); },
-        onPageFinished: (finish) {    pullToRefresh.finished(); },
-        onWebResourceError: (error) {
-          debugPrint(
-              'MyWebViewWidget:onWebResourceError(): ${error.description}');
-          pullToRefresh.finished();
-        },
+        child: Builder(
+          builder: (BuildContext context) {
+            return WebView(
+              initialUrl: widget.initialUrl,
+              javascriptMode: JavascriptMode.unrestricted,
+              zoomEnabled: true,
+              gestureNavigationEnabled: true,
+              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                pullToRefresh.dragGestureRecognizer(_refreshIndicatorKey),
+              },
+              onWebViewCreated: (WebViewController webViewController) {
+                _controller = webViewController;
+                pullToRefresh.setContext(context);
+                pullToRefresh.setController(_controller);
+              },
+              onPageStarted: (String url) {
+                pullToRefresh.started();
+              },
+              onPageFinished: (finish) {
+                pullToRefresh.finished();
+              },
+              onWebResourceError: (error) {
+                debugPrint(
+                    'MyWebViewWidget:onWebResourceError(): ${error.description}');
+                pullToRefresh.finished();
+              },
+            );
+          },
+        ),
       ),
     );
   }
