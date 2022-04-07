@@ -92,15 +92,10 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
   @override
   Widget build(context) {
     return
-        // NotificationListener(
-        // onNotification: (scrollNotification) {
-        //  debugPrint('MyWebViewWidget:NotificationListener(): $scrollNotification');
-        //  return true;
-        // }, child:
       RefreshIndicator(
         onRefresh: () => dragGesturePullToRefresh.refresh(),
         child: Builder(
-          builder: (context) => WebView(
+          builder: (contextRefresh) => WebView(
             initialUrl: widget.initialUrl,
             javascriptMode: JavascriptMode.unrestricted,
             zoomEnabled: true,
@@ -109,7 +104,7 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
             onWebViewCreated: (WebViewController webViewController) {
               _controller = webViewController;
               dragGesturePullToRefresh
-                  .setContext(context)
+                  .setContext(contextRefresh)
                   .setController(_controller);
             },
             onPageStarted: (String url) { dragGesturePullToRefresh.started(); },
