@@ -40,7 +40,7 @@ This version **resolves** following **issues** w/o `SingleChildScrollView`:
 I changed using `ScrollNotification` which `RefreshIndicator` interprets right when `FixedScrollMetrics` are set. So we have the original animation like in `SingleChildScrollView` or e.g. `chrome browser`.
 
 ## Usage
-Just use `DragGesturePullToRefresh` from `pull_to_refresh.dart` like in the `webview.dart`:
+Just use `DragGesturePullToRefresh` from my [pull_to_refresh.dart](./lib/pull_to_refresh.dart) like in my [webview.dart](./lib/webview.dart) example in yours (commented with `// Here`), that's it:
 ```dart
 import 'package:flutter/material.dart';
 import 'dart:io';
@@ -65,13 +65,13 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
     with WidgetsBindingObserver {
 
   late WebViewController _controller;
-  late DragGesturePullToRefresh dragGesturePullToRefresh;
+  late DragGesturePullToRefresh dragGesturePullToRefresh; // Here
 
   @override
   void initState() {
     super.initState();
 
-    dragGesturePullToRefresh = DragGesturePullToRefresh();
+    dragGesturePullToRefresh = DragGesturePullToRefresh(); // Here
     WidgetsBinding.instance!.addObserver(this);
     if (Platform.isAndroid) WebView.platform = SurfaceAndroidWebView();
   }
@@ -86,33 +86,33 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
   @override
   void didChangeMetrics() {
     // on portrait / landscape or other change, recalculate height
-    dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height);
+    dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height); // Here
   }
 
   @override
   Widget build(context) {
     return
       RefreshIndicator(
-        onRefresh: () => dragGesturePullToRefresh.refresh(),
+        onRefresh: () => dragGesturePullToRefresh.refresh(), // Here
         child: Builder(
           builder: (contextRefresh) => WebView(
             initialUrl: widget.initialUrl,
             javascriptMode: JavascriptMode.unrestricted,
             zoomEnabled: true,
             gestureNavigationEnabled: true,
-            gestureRecognizers: {Factory(() => dragGesturePullToRefresh)},
+            gestureRecognizers: {Factory(() => dragGesturePullToRefresh)}, // Here
             onWebViewCreated: (WebViewController webViewController) {
               _controller = webViewController;
-              dragGesturePullToRefresh
-                  .setContext(contextRefresh)
-                  .setController(_controller);
+              dragGesturePullToRefresh         // Here
+                  .setContext(contextRefresh)  // Here
+                  .setController(_controller); // Here
             },
-            onPageStarted: (String url) { dragGesturePullToRefresh.started(); },
-            onPageFinished: (finish) {    dragGesturePullToRefresh.finished();},
+            onPageStarted: (String url) { dragGesturePullToRefresh.started(); }, // Here
+            onPageFinished: (finish) {    dragGesturePullToRefresh.finished();}, // Here
             onWebResourceError: (error) {
               debugPrint(
                   'MyWebViewWidget:onWebResourceError(): ${error.description}');
-              dragGesturePullToRefresh.finished();
+              dragGesturePullToRefresh.finished(); // Here
             },
           ),
         ),
