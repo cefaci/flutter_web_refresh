@@ -42,10 +42,8 @@ I changed using `ScrollNotification` which `RefreshIndicator` interprets right w
 ## Usage
 Just use `DragGesturePullToRefresh` from my [pull_to_refresh.dart](./lib/pull_to_refresh.dart) like in my [webview.dart](./lib/webview.dart) example in yours (commented with `// Here`), that's it:
 ```dart
-import 'package:flutter/material.dart';
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_web_refresh/pull_to_refresh.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -62,61 +60,65 @@ class MyWebViewWidget extends StatefulWidget {
 }
 
 class _MyWebViewWidgetState extends State<MyWebViewWidget>
-    with WidgetsBindingObserver {
+        with WidgetsBindingObserver {
 
-  late WebViewController _controller;
-  late DragGesturePullToRefresh dragGesturePullToRefresh; // Here
+  WebViewController _controller = WebViewController();
+  late DragGesturePullToRefresh dragGesturePullToRefresh;
 
   @override
   void initState() {
     super.initState();
 
-    dragGesturePullToRefresh = DragGesturePullToRefresh(); // Here
-    WidgetsBinding.instance!.addObserver(this);
-    if (Platform.isAndroid) WebView.platform = SurfaceAndroidWebView();
+    dragGesturePullToRefresh = DragGesturePullToRefresh();
+    dragGesturePullToRefresh.setContext(context).setController(_controller);
+
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            dragGesturePullToRefresh.started();
+          },
+          onPageFinished: (String url) {
+            dragGesturePullToRefresh.finished();
+          },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint('MyWebViewWidget:onWebResourceError(): ${error.description}');
+            dragGesturePullToRefresh.finished();
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse(widget.initialUrl));
+
+    setState(() {});
+
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     // remove listener
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeMetrics() {
     // on portrait / landscape or other change, recalculate height
-    dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height); // Here
+    dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height);
   }
 
   @override
   Widget build(context) {
-    return
-      RefreshIndicator(
-        onRefresh: () => dragGesturePullToRefresh.refresh(), // Here
-        child: Builder(
-          builder: (contextRefresh) => WebView(
-            initialUrl: widget.initialUrl,
-            javascriptMode: JavascriptMode.unrestricted,
-            zoomEnabled: true,
-            gestureNavigationEnabled: true,
-            gestureRecognizers: {Factory(() => dragGesturePullToRefresh)}, // Here
-            onWebViewCreated: (WebViewController webViewController) {
-              _controller = webViewController;
-              dragGesturePullToRefresh         // Here
-                  .setContext(contextRefresh)  // Here
-                  .setController(_controller); // Here
-            },
-            onPageStarted: (String url) { dragGesturePullToRefresh.started(); }, // Here
-            onPageFinished: (finish) {    dragGesturePullToRefresh.finished();}, // Here
-            onWebResourceError: (error) {
-              debugPrint(
-                  'MyWebViewWidget:onWebResourceError(): ${error.description}');
-              dragGesturePullToRefresh.finished(); // Here
-            },
-          ),
+    return RefreshIndicator(
+      onRefresh: () => dragGesturePullToRefresh.refresh(),
+      child: Builder(
+        builder: (context) => WebViewWidget(
+          controller: _controller,
+          gestureRecognizers: {Factory(() => dragGesturePullToRefresh)},
         ),
-      );
+      ),
+    );
   }
 }
 ```

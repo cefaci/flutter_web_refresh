@@ -69,7 +69,7 @@ class DragGesturePullToRefresh extends VerticalDragGestureRecognizer {
         maxScrollExtent: maxScrollExtent,
         pixels: pixels,
         viewportDimension: viewportDimension,
-        axisDirection: axisDirection);
+        axisDirection: axisDirection, devicePixelRatio: 1);
   }
 
   DragGesturePullToRefresh() {
@@ -77,7 +77,8 @@ class DragGesturePullToRefresh extends VerticalDragGestureRecognizer {
       // debugPrint('MyWebViewWidget:onStart(): $dragDetails');
       if (!isLoading ||
           (msLoading > 0 && (DateTime.now().millisecondsSinceEpoch - msLoading) > EXCEEDS_LOADING_TIME)) {
-        _controller.getScrollY().then((scrollYPos) {
+        _controller.getScrollPosition().then((scrollPos) {
+          final scrollYPos = scrollPos.dy;
           if (scrollYPos == 0) {
             dragStarted = true;
             dragDistance = 0;
