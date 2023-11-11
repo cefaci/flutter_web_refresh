@@ -64,7 +64,6 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..enableZoom(true)
-      ..getScrollPosition()
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
