@@ -18,36 +18,44 @@ class MyWebViewWidget extends StatefulWidget {
 class _MyWebViewWidgetState extends State<MyWebViewWidget>
     with WidgetsBindingObserver {
 
-  WebViewController _controller = WebViewController();
-  late DragGesturePullToRefresh dragGesturePullToRefresh;
+  late WebViewController _controller;
+  late DragGesturePullToRefresh dragGesturePullToRefresh; // Here
 
   @override
   void initState() {
     super.initState();
 
-    dragGesturePullToRefresh = DragGesturePullToRefresh();
-    dragGesturePullToRefresh.setContext(context).setController(_controller);
-
+    dragGesturePullToRefresh = DragGesturePullToRefresh(3000, 10); // Here
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..enableZoom(true)
+      ..getScrollPosition()
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            dragGesturePullToRefresh.started();
+            // Don't allow RefreshIndicator if page is loading, but not needed
+            dragGesturePullToRefresh.started(); // Here
           },
           onPageFinished: (String url) {
-            dragGesturePullToRefresh.finished();
+            // Hide RefreshIndicator for page reload if showing
+            dragGesturePullToRefresh.finished(); // Here
           },
           onWebResourceError: (WebResourceError error) {
-            debugPrint('MyWebViewWidget:onWebResourceError(): ${error.description}');
-            dragGesturePullToRefresh.finished();
+            //debugPrint('MyWebViewWidget:onWebResourceError(): ${error.description}');
+            // Hide RefreshIndicator for page reload if showing
+            dragGesturePullToRefresh.finished(); // Here
           },
         ),
       )
       ..loadRequest(Uri.parse(widget.initialUrl));
 
-    setState(() {});
+    dragGesturePullToRefresh // Here
+        .setController(_controller)
+        .setDragHeightEnd(200)
+        .setDragStartYDiff(10)
+        .setWaitToRestart(3000);
 
+    //setState(() {});
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -61,19 +69,28 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
   @override
   void didChangeMetrics() {
     // on portrait / landscape or other change, recalculate height
-    dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height);
+    //dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height); // Here
   }
 
   @override
   Widget build(context) {
     return RefreshIndicator(
-        onRefresh: () => dragGesturePullToRefresh.refresh(),
-        child: Builder(
-          builder: (context) => WebViewWidget(
+      //displacement: 250,
+      //backgroundColor: Colors.yellow,
+      //color: Colors.red,
+      //strokeWidth: 3,
+      triggerMode: RefreshIndicatorTriggerMode.onEdge,
+      onRefresh: dragGesturePullToRefresh.refresh, // Here
+      child: Builder(
+        builder: (context) {
+          // IMPORTANT: Use the RefreshIndicator context!
+          dragGesturePullToRefresh.setContext(context); // Here
+          return WebViewWidget(
             controller: _controller,
-            gestureRecognizers: {Factory(() => dragGesturePullToRefresh)},
-          ),
-        ),
-      );
+            gestureRecognizers: {Factory(() => dragGesturePullToRefresh)}, // HERE
+          );
+        },
+      ),
+    );
   }
 }

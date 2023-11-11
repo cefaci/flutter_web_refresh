@@ -1,6 +1,9 @@
 # Flutter Web Refresh
 
 Pull down to refresh `WebView` Page in flutter with `RefreshIndicator`.
+Tested with `webview_flutter : ^4.4.2`.
+
+<img src="support/example3.gif"  />
 
 ## Getting Started
 
@@ -18,23 +21,11 @@ This version **resolves** following **issues** w/o `SingleChildScrollView`:
 - The **scroll** **position** **stays** where you left somewhere in your previous absolute page height, 
   if you browse further w/o a page refresh.
 
-<img src="support/example3.gif"  />
-
 ## Constants 
-
+- `exceedsLoadingTime`: Checks if loading time exceeds a maximum time (e.g. 3 seconds)
+  to re-allow drag to refresh if page is still loading (Check [pull_to_refresh.dart](./lib/pull_to_refresh.dart)).
 - <s>`REFRESH_DISTANCE_MIN`: Calculates in [pull_to_refresh.dart](./lib/pull_to_refresh.dart) from the screen size 
   the needed dragging distance to start the refresh process (default is `0.2` WebView screen pixels).</s>
-- `EXCEEDS_LOADING_TIME`: Checks if loading time exceeds a maximum time (e.g. 3 seconds) 
-  to re-allow drag to refresh if page is still loading (Check [pull_to_refresh.dart](./lib/pull_to_refresh.dart)).  
-
-## Differences w/o `SingleChildScrollView` or to e.g. the chrome browser
-
-- <s>The `RefreshIndicator` shows no initial animation by dragging it down until the distance 
-  is reached to start the refresh process.</s>
-- <s>The web page scrolling is not blocked, when you start to drag down from the top position of 
-  the page to start the refresh process, e.g. like in the chrome browser. So the refresh process 
-  is stopped if start to drag down from the page's top position and then up before reaching 
-  the distance to start the refresh process. Check the method in `refreshPage()` in the [pull_to_refresh.dart](./lib/pull_to_refresh.dart)</s>
 
 ## Update
 I changed using `ScrollNotification` which `RefreshIndicator` interprets right when `FixedScrollMetrics` are set. So we have the original animation like in `SingleChildScrollView` or e.g. `chrome browser`.
@@ -63,35 +54,43 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
         with WidgetsBindingObserver {
 
   WebViewController _controller = WebViewController();
-  late DragGesturePullToRefresh dragGesturePullToRefresh;
+  late DragGesturePullToRefresh dragGesturePullToRefresh; // Here
 
   @override
   void initState() {
     super.initState();
 
-    dragGesturePullToRefresh = DragGesturePullToRefresh();
-    dragGesturePullToRefresh.setContext(context).setController(_controller);
-
+    dragGesturePullToRefresh = DragGesturePullToRefresh(); // Here
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..enableZoom(true)
+      ..getScrollPosition()
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            dragGesturePullToRefresh.started();
+            // Don't allow RefreshIndicator if page is loading, but not needed
+            dragGesturePullToRefresh.started(); // Here
           },
           onPageFinished: (String url) {
-            dragGesturePullToRefresh.finished();
+            // Hide RefreshIndicator for page reload if showing
+            dragGesturePullToRefresh.finished(); // Here
           },
           onWebResourceError: (WebResourceError error) {
-            debugPrint('MyWebViewWidget:onWebResourceError(): ${error.description}');
-            dragGesturePullToRefresh.finished();
+            //debugPrint('MyWebViewWidget:onWebResourceError(): ${error.description}');
+            // Hide RefreshIndicator for page reload if showing
+            dragGesturePullToRefresh.finished(); // Here
           },
         ),
       )
       ..loadRequest(Uri.parse(widget.initialUrl));
 
-    setState(() {});
+    dragGesturePullToRefresh // Here
+            .setController(_controller)
+            .setDragHeightEnd(200)
+            .setDragStartYDiff(10)
+            .setWaitToRestart(3000);
 
+    //setState(() {});
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -103,25 +102,34 @@ class _MyWebViewWidgetState extends State<MyWebViewWidget>
   }
 
   @override
-  void didChangeMetrics() {
-    // on portrait / landscape or other change, recalculate height
-    dragGesturePullToRefresh.setHeight(MediaQuery.of(context).size.height);
-  }
-
-  @override
   Widget build(context) {
     return RefreshIndicator(
-      onRefresh: () => dragGesturePullToRefresh.refresh(),
+      triggerMode: RefreshIndicatorTriggerMode.onEdge,
+      onRefresh: dragGesturePullToRefresh.refresh, // Here
       child: Builder(
-        builder: (context) => WebViewWidget(
-          controller: _controller,
-          gestureRecognizers: {Factory(() => dragGesturePullToRefresh)},
-        ),
+        builder: (context) {
+          // IMPORTANT: Use the RefreshIndicator context!
+          dragGesturePullToRefresh.setContext(context); // Here
+          return WebViewWidget(
+            controller: _controller,
+            // Add it to the WebViewWidget
+            gestureRecognizers: {Factory(() => dragGesturePullToRefresh)}, // Here
+          );
+        },
       ),
     );
   }
 }
 ```
+
+## Differences w/o `SingleChildScrollView` or to e.g. the chrome browser
+
+- <s>The `RefreshIndicator` shows no initial animation by dragging it down until the distance
+  is reached to start the refresh process.</s>
+- <s>The web page scrolling is not blocked, when you start to drag down from the top position of
+  the page to start the refresh process, e.g. like in the chrome browser. So the refresh process
+  is stopped if start to drag down from the page's top position and then up before reaching
+  the distance to start the refresh process. Check the method in `refreshPage()` in the [pull_to_refresh.dart](./lib/pull_to_refresh.dart)</s>
 
 ## Resources
 
